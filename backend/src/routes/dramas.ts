@@ -140,7 +140,7 @@ app.put('/:id', async (c) => {
 // DELETE /dramas/:id - Soft delete
 app.delete('/:id', async (c) => {
   const id = Number(c.req.param('id'))
-  await db.update(schema.dramas).set({ deletedAt: now() }).where(eq(schema.dramas.id, id))
+  db.update(schema.dramas).set({ deletedAt: now() }).where(eq(schema.dramas.id, id)).run()
   return success(c)
 })
 
@@ -153,9 +153,9 @@ app.put('/:id/characters', async (c) => {
 
   for (const char of chars) {
     if (char.id) {
-      await db.update(schema.characters).set({ ...char, updatedAt: ts }).where(eq(schema.characters.id, char.id))
+      db.update(schema.characters).set({ ...char, updatedAt: ts }).where(eq(schema.characters.id, char.id)).run()
     } else {
-      await db.insert(schema.characters).values({ ...char, dramaId, createdAt: ts, updatedAt: ts })
+      db.insert(schema.characters).values({ ...char, dramaId, createdAt: ts, updatedAt: ts }).run()
     }
   }
   return success(c)
@@ -170,16 +170,16 @@ app.put('/:id/episodes', async (c) => {
 
   for (const ep of episodes) {
     if (ep.id) {
-      await db.update(schema.episodes).set({ ...ep, updatedAt: ts }).where(eq(schema.episodes.id, ep.id))
+      db.update(schema.episodes).set({ ...ep, updatedAt: ts }).where(eq(schema.episodes.id, ep.id)).run()
     } else {
-      await db.insert(schema.episodes).values({
+      db.insert(schema.episodes).values({
         ...ep,
         dramaId,
         episodeNumber: ep.episode_number || ep.episodeNumber || 1,
         title: ep.title || '未命名',
         createdAt: ts,
         updatedAt: ts,
-      })
+      }).run()
     }
   }
   return success(c)

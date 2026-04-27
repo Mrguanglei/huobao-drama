@@ -64,7 +64,7 @@ app.put('/:id', async (c) => {
   if ('description' in updates) drizzleUpdates.description = updates.description
   if ('status' in updates) drizzleUpdates.status = updates.status
 
-  await db.update(schema.episodes).set(drizzleUpdates).where(eq(schema.episodes.id, id))
+  db.update(schema.episodes).set(drizzleUpdates).where(eq(schema.episodes.id, id)).run()
   return success(c)
 })
 

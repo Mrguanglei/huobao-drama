@@ -51,7 +51,7 @@
           <h3 class="project-title">{{ d.title }}</h3>
 
           <div class="project-meta">
-            <span v-if="d.style" class="style-tag">{{ d.style }}</span>
+            <span v-if="d.style" class="style-tag">{{ styleMap[d.style] || d.style }}</span>
             <span class="meta-item">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
               {{ d.characters?.length || 0 }}
@@ -139,8 +139,9 @@ const dramas = ref([])
 const loading = ref(false)
 const showCreate = ref(false)
 const form = ref({ title: '', total_episodes: 1, style: '' })
-const styles = ['realistic', 'anime', 'ghibli', 'cinematic', 'comic', 'watercolor']
-const styleSelectOptions = computed(() => styles.map(s => ({ label: s, value: s })))
+const styleMap = { realistic: '写实', anime: '动漫', ghibli: '吉卜力', cinematic: '电影感', comic: '漫画', watercolor: '水彩' }
+const styles = Object.keys(styleMap)
+const styleSelectOptions = computed(() => styles.map(s => ({ label: styleMap[s], value: s })))
 
 async function load() {
   loading.value = true

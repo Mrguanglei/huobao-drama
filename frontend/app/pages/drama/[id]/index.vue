@@ -12,7 +12,7 @@
         <div class="head-info">
           <h1 class="page-title">{{ drama.title }}</h1>
           <div class="page-meta">
-            <span v-if="drama.style" class="style-chip">{{ drama.style }}</span>
+            <span v-if="drama.style" class="style-chip">{{ { realistic:'写实', anime:'动漫', ghibli:'吉卜力', cinematic:'电影感', comic:'漫画', watercolor:'水彩' }[drama.style] || drama.style }}</span>
             <span v-if="drama.style" class="meta-divider"></span>
             <span class="meta-item">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
