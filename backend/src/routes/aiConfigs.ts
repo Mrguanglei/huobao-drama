@@ -9,10 +9,10 @@ import { redactUrl, logTaskError, logTaskProgress, logTaskSuccess } from '../uti
 const app = new Hono()
 
 const HUOBAO_PRESET_SERVICES = [
-  { serviceType: 'text', label: '文本', provider: 'chatfire', baseUrl: 'https://api.chatfire.site', model: 'gemini-3-pro-preview', priority: 100 },
-  { serviceType: 'image', label: '图片', provider: 'gemini', baseUrl: 'https://api.chatfire.site', model: 'gemini-3-pro-image-preview', priority: 99 },
-  { serviceType: 'video', label: '视频', provider: 'volcengine', baseUrl: 'https://api.chatfire.site/volcengine', model: 'doubao-seedance-1-5-pro-251215', priority: 98 },
-  { serviceType: 'audio', label: '音频', provider: 'minimax', baseUrl: 'https://api.chatfire.site/minimax', model: 'speech-2.8-hd', priority: 97 },
+  { serviceType: 'text', label: '文本', provider: 'openai', baseUrl: 'https://api.evolink.ai', model: 'gemini-2.5-pro', priority: 100 },
+  { serviceType: 'image', label: '图片', provider: 'openai', baseUrl: 'https://api.evolink.ai', model: 'gemini-3.1-flash-image-preview', priority: 99 },
+  { serviceType: 'video', label: '视频', provider: 'volcengine', baseUrl: 'https://api.evolink.ai/volcengine', model: 'doubao-seedance-1-5-pro-251215', priority: 98 },
+  { serviceType: 'audio', label: '音频', provider: 'minimax', baseUrl: 'https://api.evolink.ai/minimax', model: 'speech-2.8-hd', priority: 97 },
 ] as const
 
 const HUOBAO_AGENT_DEFAULTS = [
@@ -23,7 +23,7 @@ const HUOBAO_AGENT_DEFAULTS = [
   { agentType: 'grid_prompt_generator', name: '图片提示词生成' },
 ] as const
 
-const HUOBAO_AGENT_MODEL = 'gemini-3-pro-preview'
+const HUOBAO_AGENT_MODEL = 'gemini-2.5-pro'
 
 function bearerHeaders(apiKey?: string, withJson = false) {
   const headers: Record<string, string> = {}

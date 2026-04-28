@@ -47,11 +47,11 @@
           <div class="setup-panel-head">
             <div>
               <div class="setup-kicker">Quick Setup</div>
-              <div class="setup-title">火宝推荐配置</div>
-              <div class="setup-desc">一键写入文本、图片、视频、音频四类推荐配置，适合作为开箱默认方案。</div>
+              <div class="setup-title">EvoLink 推荐配置</div>
+              <div class="setup-desc">基于 EvoLink.AI 聚合网关，一键写入文本、图片、视频、音频四类推荐配置，开箱即用。</div>
             </div>
             <button class="btn btn-primary" @click="presetDialog = true">
-              <Sparkles :size="14" /> 火宝一键配置
+              <Sparkles :size="14" /> 一键配置
             </button>
           </div>
           <div class="preset-grid">
@@ -335,17 +335,17 @@
       <form class="modal card config-modal" @submit.prevent="applyHuobaoPreset">
         <div class="config-modal-head">
           <div>
-            <div class="setup-kicker">Huobao Preset</div>
-            <h2 class="modal-title">火宝一键配置</h2>
-            <div class="modal-note">按火宝推荐链路自动创建或更新 4 条服务配置，并同时初始化 5 个 Agent 的默认模型。</div>
+            <div class="setup-kicker">EvoLink Preset</div>
+            <h2 class="modal-title">一键配置</h2>
+            <div class="modal-note">基于 EvoLink.AI 聚合网关自动创建或更新 4 条服务配置，并同时初始化 5 个 Agent 的默认模型。</div>
           </div>
           <span class="tag tag-success">推荐</span>
         </div>
         <div class="huobao-grid">
           <label class="field">
-            <span class="field-label">Huobao API Key <span class="dim">(统一用于文本 / 图片 / 视频 / 音频)</span></span>
-            <input v-model="huobaoForm.apiKey" class="input" type="password" placeholder="用于 api.chatfire.site 全链路服务" />
-            <span class="field-hint">还没有账号？<a href="https://api.chatfire.site/" target="_blank" rel="noopener">立即注册 →</a></span>
+            <span class="field-label">EvoLink API Key <span class="dim">(统一用于文本 / 图片 / 视频 / 音频)</span></span>
+            <input v-model="huobaoForm.apiKey" class="input" type="password" placeholder="用于 api.evolink.ai 全链路服务" />
+            <span class="field-hint">还没有账号？<a href="https://evolink.ai/" target="_blank" rel="noopener">立即注册 →</a></span>
           </label>
         </div>
         <div class="preset-grid compact">
@@ -431,31 +431,31 @@ const serviceMeta = {
 }
 const providerPresets = {
   text: {
-    chatfire: { label: 'ChatFire 推荐', baseUrl: 'https://api.chatfire.site', models: ['gemini-3-pro-preview'] },
+    evolink: { label: 'EvoLink 推荐', baseUrl: 'https://api.evolink.ai', models: ['gemini-2.5-pro'] },
     openrouter: { label: 'OpenRouter 推荐', baseUrl: 'https://openrouter.ai/api', models: ['google/gemini-3-flash-preview'] },
     openai: { label: 'OpenAI 推荐', baseUrl: 'https://api.openai.com', models: ['gpt-4.1-mini'] },
   },
   image: {
-    chatfire: { label: 'ChatFire 推荐', baseUrl: 'https://api.chatfire.site', models: ['doubao-seedream-4-5-251128'] },
-    gemini: { label: 'Gemini 推荐', baseUrl: 'https://api.chatfire.site', models: ['gemini-3-pro-image-preview'] },
+    evolink: { label: 'EvoLink 推荐', baseUrl: 'https://api.evolink.ai', models: ['gemini-3.1-flash-image-preview'] },
     volcengine: { label: '火山推荐', baseUrl: 'https://ark.cn-beijing.volces.com', models: ['doubao-seedream-4-0-250828'] },
   },
   video: {
-    volcengine: { label: '火宝视频', baseUrl: 'https://api.chatfire.site/volcengine', models: ['doubao-seedance-1-5-pro-251215'] },
+    evolink: { label: 'EvoLink 视频', baseUrl: 'https://api.evolink.ai/volcengine', models: ['doubao-seedance-1-5-pro-251215'] },
     vidu: { label: 'Vidu 推荐', baseUrl: 'https://api.vidu.com', models: ['viduq3-turbo'] },
     ali: { label: '阿里推荐', baseUrl: 'https://dashscope.aliyuncs.com', models: ['wan2.6-i2v-flash'] },
   },
   audio: {
-    minimax: { label: '火宝音频', baseUrl: 'https://api.chatfire.site/minimax', models: ['speech-2.8-hd'] },
+    evolink: { label: 'EvoLink 音频', baseUrl: 'https://api.evolink.ai/minimax', models: ['speech-2.8-hd'] },
   },
 }
 const huobaoPresetCards = [
-  { serviceType: 'text', label: '文本', provider: 'chatfire', baseUrl: 'https://api.chatfire.site', model: 'gemini-3-pro-preview', priority: 100 },
-  { serviceType: 'image', label: '图片', provider: 'gemini', baseUrl: 'https://api.chatfire.site', model: 'gemini-3-pro-image-preview', priority: 99 },
-  { serviceType: 'video', label: '视频', provider: 'volcengine', baseUrl: 'https://api.chatfire.site/volcengine', model: 'doubao-seedance-1-5-pro-251215', priority: 98 },
-  { serviceType: 'audio', label: '音频', provider: 'minimax', baseUrl: 'https://api.chatfire.site/minimax', model: 'speech-2.8-hd', priority: 97 },
+  { serviceType: 'text', label: '文本', provider: 'openai', baseUrl: 'https://api.evolink.ai', model: 'gemini-2.5-pro', priority: 100 },
+  { serviceType: 'image', label: '图片', provider: 'openai', baseUrl: 'https://api.evolink.ai', model: 'gemini-3.1-flash-image-preview', priority: 99 },
+  { serviceType: 'video', label: '视频', provider: 'volcengine', baseUrl: 'https://api.evolink.ai/volcengine', model: 'doubao-seedance-1-5-pro-251215', priority: 98 },
+  { serviceType: 'audio', label: '音频', provider: 'minimax', baseUrl: 'https://api.evolink.ai/minimax', model: 'speech-2.8-hd', priority: 97 },
 ]
 const endpointPrefixes = {
+  evolink: '/v1',
   chatfire: '/v1',
   openai: '/v1',
   openrouter: '/v1',
@@ -565,7 +565,7 @@ async function applyHuobaoPreset() {
     await loadCfgs()
     await loadAgents()
     presetDialog.value = false
-    toast.success('火宝推荐配置与默认 Agent LLM 已写入')
+    toast.success('EvoLink 推荐配置与默认 Agent LLM 已写入')
   } catch (e) {
     toast.error(e.message)
   }
