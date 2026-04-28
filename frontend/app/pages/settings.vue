@@ -354,10 +354,17 @@
               <span class="preset-service">{{ preset.label }}</span>
               <span class="tag tag-accent">{{ preset.provider }}</span>
             </div>
-            <div class="preset-model mono">{{ preset.model }}</div>
+            <label class="field" style="gap:3px;margin:4px 0 0">
+              <span class="dim" style="font-size:10px">模型</span>
+              <input v-model="huobaoForm[preset.serviceType + 'Model']" class="input" style="font-size:12px;padding:4px 8px" :placeholder="preset.model" />
+            </label>
             <div class="preset-base mono">{{ preset.baseUrl }}</div>
           </article>
         </div>
+        <label class="field" style="margin-top:10px">
+          <span class="field-label">Agent 默认模型 <span class="dim">(5 个 Agent 统一使用)</span></span>
+          <input v-model="huobaoForm.agentModel" class="input" :placeholder="huobaoPresetCards[0].model" />
+        </label>
         <div class="modal-actions">
           <button type="button" class="btn" @click="presetDialog = false">取消</button>
           <button type="submit" class="btn btn-primary">创建并启用</button>
@@ -419,7 +426,7 @@ const presetDialog = ref(false)
 const cfgTesting = ref(false)
 const cfgTestResult = ref(null)
 const cfgForm = reactive({ name: '', provider: '', api_key: '', base_url: '', modelStr: '', service_type: 'text', priority: 0 })
-const huobaoForm = reactive({ apiKey: '' })
+const huobaoForm = reactive({ apiKey: '', textModel: '', imageModel: '', videoModel: '', audioModel: '', agentModel: '' })
 const serviceTypes = [{ type: 'text', label: '文本' }, { type: 'image', label: '图片' }, { type: 'video', label: '视频' }, { type: 'audio', label: '音频' }]
 const providers = ['ali', 'chatfire', 'gemini', 'minimax', 'openai', 'openrouter', 'vidu', 'volcengine']
 const providerSelectOptions = computed(() => providers.map(p => ({ label: p, value: p })))
@@ -557,11 +564,17 @@ async function saveCfg() {
 }
 async function applyHuobaoPreset() {
   if (!huobaoForm.apiKey) {
-    toast.warning('请填写 Huobao API Key')
+    toast.warning('请填写 EvoLink API Key')
     return
   }
   try {
-    await aiConfigAPI.huobaoPreset(huobaoForm.apiKey)
+    const overrides = {}
+    if (huobaoForm.textModel) overrides.text_model = huobaoForm.textModel
+    if (huobaoForm.imageModel) overrides.image_model = huobaoForm.imageModel
+    if (huobaoForm.videoModel) overrides.video_model = huobaoForm.videoModel
+    if (huobaoForm.audioModel) overrides.audio_model = huobaoForm.audioModel
+    if (huobaoForm.agentModel) overrides.agent_model = huobaoForm.agentModel
+    await aiConfigAPI.huobaoPreset(huobaoForm.apiKey, overrides)
     await loadCfgs()
     await loadAgents()
     presetDialog.value = false

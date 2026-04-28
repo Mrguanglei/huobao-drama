@@ -173,19 +173,29 @@ app.post('/huobao-preset', async (c) => {
   const apiKey = String(body.api_key || '').trim()
   if (!apiKey) return badRequest(c, 'api_key is required')
 
+  // 支持前端传入自定义模型覆盖默认值
+  const modelOverrides: Record<string, string> = {
+    text: body.text_model || '',
+    image: body.image_model || '',
+    video: body.video_model || '',
+    audio: body.audio_model || '',
+  }
+  const agentModelOverride = body.agent_model || ''
+
   const ts = now()
 
   for (const preset of HUOBAO_PRESET_SERVICES) {
     const [existing] = db.select().from(schema.aiServiceConfigs).where(eq(schema.aiServiceConfigs.serviceType, preset.serviceType)).all()
       .filter(row => row.provider === preset.provider)
 
+    const resolvedModel = modelOverrides[preset.serviceType] || preset.model
     const values = {
       serviceType: preset.serviceType,
       provider: preset.provider,
-      name: `火宝默认${preset.label}服务`,
+      name: `默认${preset.label}服务`,
       baseUrl: preset.baseUrl,
       apiKey,
-      model: JSON.stringify([preset.model]),
+      model: JSON.stringify([resolvedModel]),
       priority: preset.priority,
       isActive: true,
       updatedAt: ts,
@@ -201,11 +211,13 @@ app.post('/huobao-preset', async (c) => {
     }
   }
 
+  const resolvedAgentModel = agentModelOverride || HUOBAO_AGENT_MODEL
+
   for (const agent of HUOBAO_AGENT_DEFAULTS) {
     const [existing] = db.select().from(schema.agentConfigs).where(eq(schema.agentConfigs.agentType, agent.agentType)).all()
     const values = {
       name: agent.name,
-      model: HUOBAO_AGENT_MODEL,
+      model: resolvedAgentModel,
       isActive: true,
       updatedAt: ts,
     }
@@ -216,7 +228,7 @@ app.post('/huobao-preset', async (c) => {
       db.insert(schema.agentConfigs).values({
         agentType: agent.agentType,
         description: '',
-        model: HUOBAO_AGENT_MODEL,
+        model: resolvedAgentModel,
         name: agent.name,
         systemPrompt: '',
         temperature: 0.7,
@@ -243,7 +255,7 @@ app.post('/huobao-preset', async (c) => {
   return success(c, {
     configs,
     agents,
-    agent_model: HUOBAO_AGENT_MODEL,
+    agent_model: resolvedAgentModel,
   })
 })
 
