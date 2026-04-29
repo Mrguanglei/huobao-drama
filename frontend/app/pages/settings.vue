@@ -428,7 +428,7 @@ const cfgTestResult = ref(null)
 const cfgForm = reactive({ name: '', provider: '', api_key: '', base_url: '', modelStr: '', service_type: 'text', priority: 0 })
 const huobaoForm = reactive({ apiKey: '', textModel: '', imageModel: '', videoModel: '', audioModel: '', agentModel: '' })
 const serviceTypes = [{ type: 'text', label: '文本' }, { type: 'image', label: '图片' }, { type: 'video', label: '视频' }, { type: 'audio', label: '音频' }]
-const providers = ['ali', 'chatfire', 'gemini', 'minimax', 'openai', 'openrouter', 'vidu', 'volcengine']
+const providers = ['ali', 'chatfire', 'evolink', 'gemini', 'minimax', 'openai', 'openrouter', 'vidu', 'volcengine']
 const providerSelectOptions = computed(() => providers.map(p => ({ label: p, value: p })))
 const serviceMeta = {
   text: { label: '文本', desc: '剧本改写、角色场景提取、分镜拆解等 Agent 文本能力' },
@@ -447,18 +447,20 @@ const providerPresets = {
     volcengine: { label: '火山推荐', baseUrl: 'https://ark.cn-beijing.volces.com', models: ['doubao-seedream-4-0-250828'] },
   },
   video: {
-    evolink: { label: 'EvoLink 视频', baseUrl: 'https://api.evolink.ai/volcengine', models: ['doubao-seedance-1-5-pro-251215'] },
+    evolink: { label: 'EvoLink 视频', baseUrl: 'https://api.evolink.ai', models: ['seedance-2.0-text-to-video'] },
+    volcengine: { label: '火山推荐', baseUrl: 'https://ark.cn-beijing.volces.com', models: ['doubao-seedance-1-5-pro-251215'] },
     vidu: { label: 'Vidu 推荐', baseUrl: 'https://api.vidu.com', models: ['viduq3-turbo'] },
     ali: { label: '阿里推荐', baseUrl: 'https://dashscope.aliyuncs.com', models: ['wan2.6-i2v-flash'] },
   },
   audio: {
-    evolink: { label: 'EvoLink 音频', baseUrl: 'https://api.evolink.ai/minimax', models: ['speech-2.8-hd'] },
+    evolink: { label: 'EvoLink 音频', baseUrl: 'https://api.evolink.ai', models: ['speech-2.8-hd'] },
+    minimax: { label: 'MiniMax 直连', baseUrl: 'https://api.minimax.chat', models: ['speech-2.8-hd'] },
   },
 }
 const huobaoPresetCards = [
   { serviceType: 'text', label: '文本', provider: 'openai', baseUrl: 'https://api.evolink.ai', model: 'gemini-2.5-pro', priority: 100 },
-  { serviceType: 'image', label: '图片', provider: 'openai', baseUrl: 'https://api.evolink.ai', model: 'gemini-3.1-flash-image-preview', priority: 99 },
-  { serviceType: 'video', label: '视频', provider: 'volcengine', baseUrl: 'https://api.evolink.ai/volcengine', model: 'doubao-seedance-1-5-pro-251215', priority: 98 },
+  { serviceType: 'image', label: '图片', provider: 'evolink', baseUrl: 'https://api.evolink.ai', model: 'gemini-3.1-flash-image-preview', priority: 99 },
+  { serviceType: 'video', label: '视频', provider: 'evolink', baseUrl: 'https://api.evolink.ai', model: 'seedance-2.0-text-to-video', priority: 98 },
   { serviceType: 'audio', label: '音频', provider: 'minimax', baseUrl: 'https://api.evolink.ai/minimax', model: 'speech-2.8-hd', priority: 97 },
 ]
 const endpointPrefixes = {
@@ -473,12 +475,26 @@ const endpointPrefixes = {
   vidu: '/ent/v2',
 }
 
+// 各 provider + serviceType 对应的具体 API 路径
+const endpointPaths = {
+  evolink: { text: '/chat/completions', image: '/images/generations', video: '/videos/generations', audio: '/audios/generations' },
+  chatfire: { text: '/chat/completions', image: '/images/generations', video: '/contents/generations/tasks', audio: '/t2a_v2' },
+  openai: { text: '/chat/completions', image: '/images/generations', video: '', audio: '/audio/speech' },
+  openrouter: { text: '/chat/completions', image: '', video: '', audio: '' },
+  minimax: { text: '/chat/completions', image: '/image_generation', video: '/video_generation', audio: '/t2a_v2' },
+  gemini: { text: '', image: '', video: '', audio: '' },
+  volcengine: { text: '/chat/completions', image: '/images/generations', video: '/contents/generations/tasks', audio: '' },
+  ali: { text: '', image: '/services/aigc/image-generation/generation', video: '/services/aigc/video-generation/video-synthesis', audio: '' },
+  vidu: { text: '', image: '', video: '/ent/v2/img2video', audio: '' },
+}
+
 const endpointHint = computed(() => {
   const provider = cfgForm.provider
   const base = cfgForm.base_url || 'https://...'
   const prefix = endpointPrefixes[provider] || ''
   if (!provider) return '选择服务商后显示推荐端点前缀'
-  return `${base}${prefix}`
+  const path = endpointPaths[provider]?.[cfgForm.service_type] || ''
+  return `${base}${prefix}${path}`
 })
 
 function byType(t) { return cfgs.value.filter(c => c.service_type === t) }

@@ -10,8 +10,8 @@ const app = new Hono()
 
 const HUOBAO_PRESET_SERVICES = [
   { serviceType: 'text', label: '文本', provider: 'openai', baseUrl: 'https://api.evolink.ai', model: 'gemini-2.5-pro', priority: 100 },
-  { serviceType: 'image', label: '图片', provider: 'openai', baseUrl: 'https://api.evolink.ai', model: 'gemini-3.1-flash-image-preview', priority: 99 },
-  { serviceType: 'video', label: '视频', provider: 'volcengine', baseUrl: 'https://api.evolink.ai/volcengine', model: 'doubao-seedance-1-5-pro-251215', priority: 98 },
+  { serviceType: 'image', label: '图片', provider: 'evolink', baseUrl: 'https://api.evolink.ai', model: 'gemini-3.1-flash-image-preview', priority: 99 },
+  { serviceType: 'video', label: '视频', provider: 'evolink', baseUrl: 'https://api.evolink.ai', model: 'seedance-2.0-text-to-video', priority: 98 },
   { serviceType: 'audio', label: '音频', provider: 'minimax', baseUrl: 'https://api.evolink.ai/minimax', model: 'speech-2.8-hd', priority: 97 },
 ] as const
 
@@ -65,6 +65,40 @@ function buildProbe(serviceType: string, provider: string, baseUrl: string, mode
       url: joinProviderUrl(baseUrl, '/v1', '/models'),
       headers: bearerHeaders(apiKey),
       body: undefined,
+    }
+  }
+
+  if (p === 'evolink') {
+    const pathMap: Record<string, string> = {
+      text: '/chat/completions',
+      image: '/images/generations',
+      video: '/videos/generations',
+      audio: '/audios/generations',
+    }
+    const path = pathMap[serviceType] || '/models'
+    const body: any = {}
+    if (m) {
+      if (serviceType === 'text') {
+        body.model = m
+        body.messages = [{ role: 'user', content: 'hi' }]
+      } else if (serviceType === 'image') {
+        body.model = m
+        body.prompt = 'a cat'
+      } else if (serviceType === 'video') {
+        body.model = m
+        body.prompt = 'a cat playing'
+      } else if (serviceType === 'audio') {
+        body.model = m
+        body.voice_prompt = 'a calm male voice'
+        body.preview_text = 'hello world'
+        body.preferred_name = 'test'
+      }
+    }
+    return {
+      method: 'POST',
+      url: joinProviderUrl(baseUrl, '/v1', path),
+      headers: bearerHeaders(apiKey, true),
+      body,
     }
   }
 
@@ -185,8 +219,11 @@ app.post('/huobao-preset', async (c) => {
   const ts = now()
 
   for (const preset of HUOBAO_PRESET_SERVICES) {
-    const [existing] = db.select().from(schema.aiServiceConfigs).where(eq(schema.aiServiceConfigs.serviceType, preset.serviceType)).all()
-      .filter(row => row.provider === preset.provider)
+    // 按 serviceType 查找同类型的任何现有配置（不管 provider 是否匹配），优先更新而非新增
+    const sameTypeRows = db.select().from(schema.aiServiceConfigs)
+      .where(eq(schema.aiServiceConfigs.serviceType, preset.serviceType))
+      .all()
+    const existing = sameTypeRows[0] || null
 
     const resolvedModel = modelOverrides[preset.serviceType] || preset.model
     const values = {

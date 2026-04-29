@@ -240,8 +240,23 @@ async function pollImageTask(id: number, config: AIConfig, taskId: string) {
       })
       if (!resp.ok) continue
       const result = await resp.json() as any
+      logTaskPayload('ImageTask', 'poll-response', {
+        id,
+        taskId,
+        provider: config.provider,
+        attempt: i + 1,
+        rawResult: result,
+      })
 
       const pollResp = adapter.parsePollResponse(result)
+      logTaskProgress('ImageTask', 'poll-parsed', {
+        id,
+        taskId,
+        provider: config.provider,
+        status: pollResp.status,
+        hasImageUrl: !!pollResp.imageUrl,
+        imageUrl: pollResp.imageUrl,
+      })
 
       if (pollResp.status === 'completed' && pollResp.imageUrl) {
         logTaskSuccess('ImageTask', 'poll-complete', { id, taskId, imageUrl: pollResp.imageUrl })
