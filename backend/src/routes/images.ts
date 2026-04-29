@@ -74,6 +74,42 @@ app.get('/', async (c) => {
   return success(c, rows)
 })
 
+// GET /images/pending — 获取正在生成中的任务（用于页面刷新后恢复状态）
+app.get('/pending', async (c) => {
+  const dramaId = c.req.query('drama_id')
+  const episodeId = c.req.query('episode_id')
+
+  let rows = db.select().from(schema.imageGenerations).all()
+
+  // 只返回 processing 状态的任务
+  rows = rows.filter(r => r.status === 'processing')
+
+  if (dramaId) rows = rows.filter(r => r.dramaId === Number(dramaId))
+
+  // 如果指定了 episode_id，通过 storyboard_id / scene_id / character_id 关联过滤
+  if (episodeId) {
+    const epIdNum = Number(episodeId)
+    const epSbs = db.select().from(schema.storyboards).where(eq(schema.storyboards.episodeId, epIdNum)).all()
+    const epSbIds = new Set(epSbs.map(s => s.id))
+
+    // characters 通过 episode_characters 关联表
+    const epCharLinks = db.select().from(schema.episodeCharacters).where(eq(schema.episodeCharacters.episodeId, epIdNum)).all()
+    const epCharIds = new Set(epCharLinks.map(l => l.characterId))
+
+    // scenes 通过 episode_scenes 关联表
+    const epSceneLinks = db.select().from(schema.episodeScenes).where(eq(schema.episodeScenes.episodeId, epIdNum)).all()
+    const epSceneIds = new Set(epSceneLinks.map(l => l.sceneId))
+
+    rows = rows.filter(r =>
+      (r.storyboardId && epSbIds.has(r.storyboardId)) ||
+      (r.characterId && epCharIds.has(r.characterId)) ||
+      (r.sceneId && epSceneIds.has(r.sceneId))
+    )
+  }
+
+  return success(c, rows)
+})
+
 // DELETE /images/:id
 app.delete('/:id', async (c) => {
   const id = Number(c.req.param('id'))

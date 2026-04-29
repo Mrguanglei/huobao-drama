@@ -48,16 +48,19 @@ export class EvoLinkImageAdapter implements ImageProviderAdapter {
   }
 
   parseGenerateResponse(result: any): ImageGenResponse {
-    const taskId = result.id
+    // EvoLink 可能返回的字段: id, task_id, data.id 等
+    const taskId = result.id ?? result.task_id ?? result.taskId ?? result.data?.id
+    console.log('[EvoLinkImageAdapter] parseGenerateResponse raw keys:', Object.keys(result))
+    console.log('[EvoLinkImageAdapter] parsed taskId:', taskId)
     if (taskId) {
-      return { isAsync: true, taskId }
+      return { isAsync: true, taskId: String(taskId) }
     }
     // 同步返回（极少见）
-    const imageUrl = result.results?.[0] || result.data?.[0]?.url
+    const imageUrl = result.results?.[0] || result.data?.[0]?.url || result.output?.[0]
     if (imageUrl) {
       return { isAsync: false, imageUrl }
     }
-    throw new Error('No task id in EvoLink image response')
+    throw new Error(`No task id in EvoLink image response. Keys: ${Object.keys(result).join(', ')}`)
   }
 
   buildPollRequest(config: AIConfig, taskId: string): ProviderRequest {

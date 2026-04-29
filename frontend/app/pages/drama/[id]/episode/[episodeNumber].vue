@@ -1471,7 +1471,8 @@ const prodTabIdx = computed({
   get: () => prodTabDefs.value.findIndex(t => t.id === prodTab.value),
   set: (v) => { prodTab.value = prodTabDefs.value[v]?.id || 'chars' },
 })
-const frameMode = ref('first')
+const frameMode = ref(localStorage.getItem('huobao_frame_mode') || 'first')
+watch(frameMode, (v) => { localStorage.setItem('huobao_frame_mode', v) })
 const fallbackVoiceProfiles = [
   { id: 'alloy', label: 'Alloy', gender: '中性', traits: '平衡、自然、克制', suitable: '通用叙述、旁白、需要稳定输出的角色' },
   { id: 'echo', label: 'Echo', gender: '男声', traits: '低沉、稳重、冷静', suitable: '成熟男性、父辈、旁白、压迫感角色' },
@@ -2437,6 +2438,138 @@ async function refresh() {
   try { mergeData.value = await mergeAPI.status(epId.value) } catch {}
 }
 
+// 从后端恢复正在生成中的图片任务状态（防止页面刷新后重复点击）
+async function restorePendingImageStates() {
+  if (!epId.value) return
+  try {
+    const pendingTasks = await imageAPI.pending({ episode_id: epId.value })
+    if (!pendingTasks?.length) return
+
+    for (const task of pendingTasks) {
+      // 后端可能返回 camelCase 或 snake_case，兼容两种格式
+      const characterId = task.character_id ?? task.characterId
+      const sceneId = task.scene_id ?? task.sceneId
+      const storyboardId = task.storyboard_id ?? task.storyboardId
+      const frameType = task.frame_type ?? task.frameType
+
+      if (characterId && !pendingCharImageIds.value.includes(characterId)) {
+        pendingCharImageIds.value.push(characterId)
+      }
+      if (sceneId && !pendingSceneImageIds.value.includes(sceneId)) {
+        pendingSceneImageIds.value.push(sceneId)
+      }
+      if (storyboardId && frameType) {
+        const key = framePendingKey(storyboardId, frameType)
+        if (!pendingShotFrameKeys.value.includes(key)) {
+          pendingShotFrameKeys.value.push(key)
+        }
+      }
+    }
+
+    // 恢复后继续轮询这些任务
+    for (const task of pendingTasks) {
+      const characterId = task.character_id ?? task.characterId
+      const sceneId = task.scene_id ?? task.sceneId
+      const storyboardId = task.storyboard_id ?? task.storyboardId
+      const frameType = task.frame_type ?? task.frameType
+
+      if (storyboardId && frameType) {
+        watchAsyncResult(() => {
+          const target = sbs.value.find(s => s.id === storyboardId)
+          const done = frameType === 'first_frame' ? !!getFirstFrame(target) : !!getLastFrame(target)
+          if (done) {
+            const key = framePendingKey(storyboardId, frameType)
+            pendingShotFrameKeys.value = pendingShotFrameKeys.value.filter(item => item !== key)
+          }
+          return done
+        })
+      }
+      if (characterId) {
+        watchAsyncResult(() => {
+          const char = chars.value.find(c => c.id === characterId)
+          const done = !!(char?.image_url || char?.imageUrl)
+          if (done) {
+            pendingCharImageIds.value = pendingCharImageIds.value.filter(item => item !== characterId)
+          }
+          return done
+        })
+      }
+      if (sceneId) {
+        watchAsyncResult(() => {
+          const scene = scenes.value.find(s => s.id === sceneId)
+          const done = !!(scene?.image_url || scene?.imageUrl)
+          if (done) {
+            pendingSceneImageIds.value = pendingSceneImageIds.value.filter(item => item !== sceneId)
+          }
+          return done
+        })
+      }
+    }
+  } catch (e) {
+    console.error('恢复 pending 状态失败:', e)
+  }
+}
+
+// 从后端恢复正在生成中的视频任务状态
+async function restorePendingVideoStates() {
+  if (!epId.value) return
+  try {
+    const pendingTasks = await videoAPI.pending({ episode_id: epId.value })
+    if (!pendingTasks?.length) return
+
+    for (const task of pendingTasks) {
+      const storyboardId = task.storyboard_id ?? task.storyboardId
+      if (storyboardId && !pendingVideoIds.value.includes(storyboardId)) {
+        pendingVideoIds.value.push(storyboardId)
+      }
+    }
+
+    // 恢复后继续轮询
+    for (const task of pendingTasks) {
+      const storyboardId = task.storyboard_id ?? task.storyboardId
+      if (storyboardId) {
+        watchAsyncResult(() => {
+          const target = sbs.value.find(s => s.id === storyboardId)
+          const done = !!(target?.video_url || target?.videoUrl)
+          if (done) {
+            pendingVideoIds.value = pendingVideoIds.value.filter(item => item !== storyboardId)
+          }
+          return done
+        }, 60, 4000)
+      }
+    }
+  } catch (e) {
+    console.error('恢复视频 pending 状态失败:', e)
+  }
+}
+
+// 从后端恢复正在合成中的任务状态
+async function restorePendingComposeStates() {
+  if (!epId.value) return
+  try {
+    const res = await composeAPI.status(epId.value)
+    const items = Array.isArray(res?.items) ? res.items : []
+    const processingIds = items.filter(item => item.status === 'compose_processing').map(item => item.id)
+    pendingComposeIds.value = processingIds
+
+    const failedItems = items.filter(item => item.status === 'compose_failed')
+    if (failedItems.length) {
+      const next = { ...failedComposeMessages.value }
+      failedItems.forEach((item) => {
+        next[item.id] = item.error_msg || item.errorMsg || '视频合成失败'
+      })
+      failedComposeMessages.value = next
+    }
+
+    // 如果还有正在合成的，继续轮询
+    if (processingIds.length) {
+      pollComposeStatus()
+    }
+  } catch (e) {
+    console.error('恢复合成 pending 状态失败:', e)
+  }
+}
+
 function saveRaw() { episodeAPI.update(epId.value, { content: localRaw.value }); episode.value.content = localRaw.value }
 function saveScr() { episodeAPI.update(epId.value, { script_content: localScript.value }); episode.value.script_content = localScript.value }
 function doRewrite() { saveRaw(); runAgent('script_rewriter', '请读取剧本并改写为格式化剧本，然后保存', dramaId, epId.value, refresh) }
@@ -2887,7 +3020,7 @@ async function loadVoices() {
 }
 
 watch([lockedAudioConfigId, audioConfigs], () => { loadVoices() }, { deep: true })
-onMounted(() => { refresh(); loadConfigs(); loadVoices() })
+onMounted(() => { refresh().then(() => { restorePendingImageStates(); restorePendingVideoStates(); restorePendingComposeStates() }); loadConfigs(); loadVoices() })
 </script>
 
 <style scoped>

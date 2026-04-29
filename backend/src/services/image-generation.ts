@@ -110,14 +110,20 @@ async function processImageGeneration(id: number, config: AIConfig) {
       body,
     })
 
+    logTaskProgress('ImageTask', 'fetch-start', { id, provider: config.provider, url: redactUrl(url) })
     const resp = await fetch(url, {
       method,
       headers,
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(600_000),
+      signal: AbortSignal.timeout(120_000),
     })
+    logTaskProgress('ImageTask', 'fetch-done', { id, provider: config.provider, status: resp.status, ok: resp.ok })
 
-    if (!resp.ok) throw new Error(`API error ${resp.status}: ${await resp.text()}`)
+    if (!resp.ok) {
+      const errText = await resp.text()
+      logTaskError('ImageTask', 'fetch-error', { id, provider: config.provider, status: resp.status, body: errText })
+      throw new Error(`API error ${resp.status}: ${errText}`)
+    }
     const result = await resp.json() as any
     logTaskPayload('ImageTask', 'response payload', {
       id,

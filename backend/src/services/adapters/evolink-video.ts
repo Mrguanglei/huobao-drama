@@ -22,15 +22,17 @@ export class EvoLinkVideoAdapter implements VideoProviderAdapter {
     const baseModel = record.model || config.model || 'seedance-2.0-text-to-video'
     let model = baseModel
 
-    // 如果用户填的模型不含模式后缀，根据 referenceMode 自动选择
-    if (!baseModel.includes('-to-video')) {
-      if (record.referenceMode === 'single' && record.imageUrl) {
-        model = 'seedance-2.0-image-to-video'
-      } else if (record.referenceMode === 'first_last' || record.referenceMode === 'multiple') {
-        model = 'seedance-2.0-reference-to-video'
-      } else {
-        model = 'seedance-2.0-text-to-video'
-      }
+    // 根据 referenceMode 自动选择合适的模型
+    // 如果当前模型已经是目标模式则保持不变，否则自动切换
+    const needsImageModel = record.referenceMode === 'single' && record.imageUrl
+    const needsReferenceModel = record.referenceMode === 'first_last' || record.referenceMode === 'multiple'
+
+    if (needsImageModel && !baseModel.includes('image-to-video')) {
+      model = 'seedance-2.0-image-to-video'
+    } else if (needsReferenceModel && !baseModel.includes('reference-to-video')) {
+      model = 'seedance-2.0-reference-to-video'
+    } else if (!needsImageModel && !needsReferenceModel && !baseModel.includes('text-to-video')) {
+      model = 'seedance-2.0-text-to-video'
     }
 
     const body: any = {

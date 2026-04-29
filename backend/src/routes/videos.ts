@@ -75,6 +75,26 @@ app.get('/', async (c) => {
   return success(c, rows)
 })
 
+// GET /videos/pending — 获取正在生成中的视频任务
+app.get('/pending', async (c) => {
+  const dramaId = c.req.query('drama_id')
+  const episodeId = c.req.query('episode_id')
+
+  let rows = db.select().from(schema.videoGenerations).all()
+  rows = rows.filter(r => r.status === 'processing')
+
+  if (dramaId) rows = rows.filter(r => r.dramaId === Number(dramaId))
+
+  if (episodeId) {
+    const epIdNum = Number(episodeId)
+    const epSbs = db.select().from(schema.storyboards).where(eq(schema.storyboards.episodeId, epIdNum)).all()
+    const epSbIds = new Set(epSbs.map(s => s.id))
+    rows = rows.filter(r => r.storyboardId && epSbIds.has(r.storyboardId))
+  }
+
+  return success(c, rows)
+})
+
 // DELETE /videos/:id
 app.delete('/:id', async (c) => {
   const id = Number(c.req.param('id'))

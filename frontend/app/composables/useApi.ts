@@ -78,6 +78,12 @@ export const imageAPI = {
     if (params?.storyboard_id) query.set('storyboard_id', String(params.storyboard_id))
     return api.get(`/images${query.size ? `?${query.toString()}` : ''}`)
   },
+  pending: (params?: { drama_id?: number; episode_id?: number }) => {
+    const query = new URLSearchParams()
+    if (params?.drama_id) query.set('drama_id', String(params.drama_id))
+    if (params?.episode_id) query.set('episode_id', String(params.episode_id))
+    return api.get(`/images/pending${query.size ? `?${query.toString()}` : ''}`)
+  },
 }
 export const gridAPI = {
   prompt: (d: any) => api.post('/grid/prompt', d),
@@ -88,6 +94,12 @@ export const gridAPI = {
 export const videoAPI = {
   generate: (d: any) => api.post('/videos', d),
   get: (id: number) => api.get(`/videos/${id}`),
+  pending: (params?: { drama_id?: number; episode_id?: number }) => {
+    const query = new URLSearchParams()
+    if (params?.drama_id) query.set('drama_id', String(params.drama_id))
+    if (params?.episode_id) query.set('episode_id', String(params.episode_id))
+    return api.get(`/videos/pending${query.size ? `?${query.toString()}` : ''}`)
+  },
 }
 export const composeAPI = {
   shot: (id: number) => api.post(`/compose/storyboards/${id}/compose`),
