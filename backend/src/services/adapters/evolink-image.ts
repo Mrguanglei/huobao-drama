@@ -75,24 +75,31 @@ export class EvoLinkImageAdapter implements ImageProviderAdapter {
   }
 
   parsePollResponse(result: any): ImagePollResponse {
-    // EvoLink 可能的状态: processing, completed, failed
+    // EvoLink 可能的状态: processing, completed, succeeded, success, failed, error
     const status = result.status
-    if (status === 'completed') {
+    console.log('[EvoLinkImageAdapter] parsePollResponse status:', status, 'keys:', Object.keys(result))
+
+    // 兼容多种完成状态
+    if (status === 'completed' || status === 'succeeded' || status === 'success' || status === 'done') {
       // 尝试多种可能的 URL 路径
       const imageUrl =
         result.results?.[0] ||
         result.output?.results?.[0] ||
         result.result?.[0] ||
         result.data?.[0]?.url ||
+        result.data?.url ||
         result.url ||
+        result.image_url ||
+        result.imageUrl ||
         null
+      console.log('[EvoLinkImageAdapter] parsed imageUrl:', imageUrl ? 'found' : 'not found')
       return {
         status: 'completed',
         imageUrl,
       }
     }
-    if (status === 'failed') {
-      const errorMsg = result.error?.message || result.error?.code || result.message || 'Image generation failed'
+    if (status === 'failed' || status === 'error' || status === 'failure') {
+      const errorMsg = result.error?.message || result.error?.code || result.message || result.detail || 'Image generation failed'
       return { status: 'failed', error: errorMsg }
     }
     return { status: status || 'processing' }

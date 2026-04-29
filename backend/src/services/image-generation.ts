@@ -297,7 +297,22 @@ async function pollImageTask(id: number, config: AIConfig, taskId: string) {
 }
 
 async function handleImageComplete(id: number, provider: string, imageUrl: string) {
-  const localPath = await downloadFile(imageUrl, 'images')
+  logTaskProgress('ImageTask', 'download-start', { id, provider, imageUrl: redactUrl(imageUrl) })
+  let localPath: string
+  try {
+    localPath = await downloadFile(imageUrl, 'images')
+  } catch (err: any) {
+    logTaskError('ImageTask', 'download-failed', { id, provider, imageUrl: redactUrl(imageUrl), error: err.message })
+    // 即使下载失败，也标记为完成并保留远程 URL，这样前端至少能显示
+    db.update(schema.imageGenerations)
+      .set({ imageUrl, status: 'completed', updatedAt: now(), errorMsg: `Download failed: ${err.message}` })
+      .where(eq(schema.imageGenerations.id, id))
+      .run()
+    // 继续更新关联表，使用远程 URL
+    await updateRelatedTables(id, imageUrl)
+    return
+  }
+
   const rows = db.select().from(schema.imageGenerations).where(eq(schema.imageGenerations.id, id)).all()
   const record = rows[0]
 
@@ -308,18 +323,26 @@ async function handleImageComplete(id: number, provider: string, imageUrl: strin
   logTaskSuccess('ImageTask', 'downloaded', { id, provider, localPath })
 
   // 更新关联表
-  if (record?.storyboardId) {
+  await updateRelatedTables(id, localPath)
+}
+
+async function updateRelatedTables(id: number, urlOrPath: string) {
+  const rows = db.select().from(schema.imageGenerations).where(eq(schema.imageGenerations.id, id)).all()
+  const record = rows[0]
+  if (!record) return
+
+  if (record.storyboardId) {
     const sbUpdate: Record<string, any> = { updatedAt: now() }
-    if (record.frameType === 'first_frame') sbUpdate.firstFrameImage = localPath
-    else if (record.frameType === 'last_frame') sbUpdate.lastFrameImage = localPath
-    else sbUpdate.composedImage = localPath
+    if (record.frameType === 'first_frame') sbUpdate.firstFrameImage = urlOrPath
+    else if (record.frameType === 'last_frame') sbUpdate.lastFrameImage = urlOrPath
+    else sbUpdate.composedImage = urlOrPath
     db.update(schema.storyboards).set(sbUpdate).where(eq(schema.storyboards.id, record.storyboardId)).run()
   }
-  if (record?.characterId) {
-    db.update(schema.characters).set({ imageUrl: localPath, updatedAt: now() }).where(eq(schema.characters.id, record.characterId)).run()
+  if (record.characterId) {
+    db.update(schema.characters).set({ imageUrl: urlOrPath, updatedAt: now() }).where(eq(schema.characters.id, record.characterId)).run()
   }
-  if (record?.sceneId) {
-    db.update(schema.scenes).set({ imageUrl: localPath, status: 'completed', updatedAt: now() }).where(eq(schema.scenes.id, record.sceneId)).run()
+  if (record.sceneId) {
+    db.update(schema.scenes).set({ imageUrl: urlOrPath, status: 'completed', updatedAt: now() }).where(eq(schema.scenes.id, record.sceneId)).run()
   }
 }
 
