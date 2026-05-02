@@ -53,14 +53,6 @@ app.post('/', async (c) => {
   }
 })
 
-// GET /images/:id
-app.get('/:id', async (c) => {
-  const id = Number(c.req.param('id'))
-  const [row] = db.select().from(schema.imageGenerations)
-    .where(eq(schema.imageGenerations.id, id)).all()
-  return success(c, row || null)
-})
-
 // GET /images — List by storyboard_id or drama_id
 app.get('/', async (c) => {
   const storyboardId = c.req.query('storyboard_id')
@@ -108,6 +100,14 @@ app.get('/pending', async (c) => {
   }
 
   return success(c, rows)
+})
+
+// GET /images/:id
+app.get('/:id', async (c) => {
+  const id = Number(c.req.param('id'))
+  const [row] = db.select().from(schema.imageGenerations)
+    .where(eq(schema.imageGenerations.id, id)).all()
+  return success(c, row || null)
 })
 
 // DELETE /images/:id

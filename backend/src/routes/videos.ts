@@ -54,14 +54,6 @@ app.post('/', async (c) => {
   }
 })
 
-// GET /videos/:id
-app.get('/:id', async (c) => {
-  const id = Number(c.req.param('id'))
-  const [row] = db.select().from(schema.videoGenerations)
-    .where(eq(schema.videoGenerations.id, id)).all()
-  return success(c, row || null)
-})
-
 // GET /videos — List by storyboard_id or drama_id
 app.get('/', async (c) => {
   const storyboardId = c.req.query('storyboard_id')
@@ -93,6 +85,14 @@ app.get('/pending', async (c) => {
   }
 
   return success(c, rows)
+})
+
+// GET /videos/:id
+app.get('/:id', async (c) => {
+  const id = Number(c.req.param('id'))
+  const [row] = db.select().from(schema.videoGenerations)
+    .where(eq(schema.videoGenerations.id, id)).all()
+  return success(c, row || null)
 })
 
 // DELETE /videos/:id
